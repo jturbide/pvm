@@ -1,0 +1,5 @@
+vendor
+packages
+composer.lock
+php_errors.log
+error_log

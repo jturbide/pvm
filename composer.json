@@ -1,0 +1,20 @@
+{
+  "name": "pvm/pvm",
+  "description": "A Windows CLI PHP Version Manager (PVM) for installing/upgrading PHP & extensions.",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "PVM\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.0",
+    "symfony/console": "^6.0",
+    "guzzlehttp/guzzle": "^7.5"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5",
+    "symfony/var-dumper": "^7.2"
+  }
+}
