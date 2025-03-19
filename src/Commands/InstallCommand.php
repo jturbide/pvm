@@ -439,4 +439,81 @@ EOT
         $io->success("Installed extension '$extIdentifier' (v{$chosen->extensionVer}) for $basePackageName successfully!");
         return Command::SUCCESS;
     }
+    
+    
+    /**
+     * Installs ionCube Loader zend extension.
+     *
+     * @param string $phpMajorMinor The PHP version in major.minor format (e.g., "8.0").
+     * @param bool $baseIsX64 Whether the system is x64.
+     * @param string $installPath Path to the PHP installation.
+     * @param object $io Input/Output interface for messaging.
+     * @param object $configSvc Configuration service managing the config.
+     * @param object $client HTTP Client for downloading files.
+     *
+     * @return int Command::SUCCESS or Command::FAILURE.
+     */
+    private function installIoncubeLoader(string $phpMajorMinor, bool $baseIsX64, string $installPath, $io, $configSvc, $client): int
+    {
+        $io->section("Installing ionCube Loader...");
+        
+        // Define the expected parameters for downloading the ionCube Loader
+        $ionCubePhpVersion = str_replace('.', '', $phpMajorMinor);
+        $ionCubePlatform = $baseIsX64 ? 'x86-64' : 'x86'; // Assume 64-bit if $baseIsX64
+        $ionCubeFileName = "ioncube_loader_win_{$ionCubePhpVersion}.dll";
+        $ionCubeBaseUrl = "https://downloads.ioncube.com/loader_downloads/";
+        
+        $ionCubeDownloadUrl = $ionCubeBaseUrl . $ionCubeFileName;
+        $tempIonCubeFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $ionCubeFileName;
+        
+        $io->text("Downloading ionCube Loader from {$ionCubeDownloadUrl}...");
+        try {
+            $client->request('GET', $ionCubeDownloadUrl, ['sink' => $tempIonCubeFile]);
+        }
+        catch (\Exception $e) {
+            $io->error("Failed to download ionCube Loader: " . $e->getMessage());
+            return Command::FAILURE;
+        }
+        
+        $extDir = $installPath . DIRECTORY_SEPARATOR . 'ext';
+        $targetIonCubePath = $extDir . DIRECTORY_SEPARATOR . $ionCubeFileName;
+        
+        if (!is_dir($extDir)) {
+            mkdir($extDir, 0777, true);
+        }
+        
+        if (!rename($tempIonCubeFile, $targetIonCubePath)) {
+            $io->error("Failed to move ionCube Loader to target directory: $targetIonCubePath");
+            return Command::FAILURE;
+        }
+        
+        $io->text("Successfully downloaded ionCube Loader to $targetIonCubePath.");
+        
+        // Add the ionCube Loader entry to php.ini
+        $iniPath = $installPath . DIRECTORY_SEPARATOR . 'php.ini';
+        if (!file_exists($iniPath)) {
+            $io->warning("php.ini not found at $iniPath. Please enable the ionCube Loader manually.");
+        }
+        else {
+            $ionCubeIniEntry = 'zend_extension="' . $ionCubeFileName . '"';
+            file_put_contents($iniPath, PHP_EOL . $ionCubeIniEntry . PHP_EOL, FILE_APPEND);
+            $io->text("Appended $ionCubeIniEntry to php.ini");
+        }
+        
+        // Log the installation in the configuration
+        $config = $configSvc->getConfig();
+        $config['packages']['ioncube_loader'] = [
+            'zend_extension' => $ionCubeFileName,
+            'dll_file' => $ionCubeFileName,
+            'ini_entry' => $ionCubeIniEntry,
+            'date_installed' => date('Y-m-d H:i:s'),
+        ];
+        
+        $configSvc->setConfig($config);
+        $configSvc->saveConfig();
+        
+        $io->success("ionCube Loader successfully installed for PHP $phpMajorMinor!");
+        
+        return Command::SUCCESS;
+    }
 }
