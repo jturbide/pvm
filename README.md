@@ -22,14 +22,19 @@ Because we love adventure and micro-optimizations on Windows machines!
     - Because we can’t have it easy, we also let you `pvm install php82-phalcon5.8.0` and parse the labyrinth of `https://downloads.php.net/~windows/pecl/releases/` to find the right DLL.
     - Automatic addition of `extension="phalcon.dll"` to your `php.ini`. If that line doesn’t work, hey, at least we tried.
 
-3. **Uninstall** (with optional `--force`)
+3. **Search Command**
+   - `pvm search redis --ext-version=5.3 --php-version=8 --nts-only`
+   - Lists all matching extensions (by partial name), partial extension version (e.g. `5.3` → matches `5.3.7`, etc.), partial PHP version (e.g. `8` → matches 8.0, 8.1, 8.2), architecture (x64 or x86), thread safety, etc.
+   - Great for discovering which DLLs are out there for your Windows environment.
+
+4. **Uninstall** (with optional `--force`)
     - Remove entire directories in a single command. Because who needs backups or regrets?
 
-4. **Ties in nicely** with your existing Windows stack – or so we claim.
+5. **Ties in nicely** with your existing Windows stack – or so we claim.
     - Optionally tweak your Apache config. Or your Nginx config. Or your *IIS config* if you’re feeling extra adventurous.
     - Did we test that? Probably not.
 
-5. **Humor**
+6. **Humor**
     - There’s a built-in requirement to appreciate puns and ironically complicated solutions. If you can’t handle that, there’s always Docker or WSL.
 
 ## Why PVM?
@@ -68,6 +73,13 @@ pvm install php82-phalcon5.8.0
 ```
 
 Because you love living on the edge, we parse downloads.php.net/~windows/pecl/ to rummage for an `x64 NTS vs17` .zip or .dll, then politely chuck it into `ext\` and add a line to `php.ini`. If something breaks? You’ll find out soon enough when `phpinfo()` bursts into flames.
+
+**Search a PECL extension**  
+```
+pvm search redis --ext-version=5.3 --php-version=8 --nts-only
+```
+
+Lists all `redis` extension builds that have a version containing `5.3`, PHP version containing `8`, and are NTS builds.
 
 **Uninstall**  
 ```
