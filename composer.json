@@ -1,8 +1,17 @@
 {
-  "name": "pvm/pvm",
+  "name": "jturbide/pvm",
   "description": "A Windows CLI PHP Version Manager (PVM) for installing/upgrading PHP & extensions.",
-  "type": "project",
-  "license": "MIT",
+  "type": "library",
+  "license": "BSD-3-Clause",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "optimize-autoloader": true,
+    "apcu-autoloader": true,
+    "apcu-autoloader-prefix": "jturbide-vhost-",
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
   "autoload": {
     "psr-4": {
       "PVM\\": "src/"
@@ -16,5 +25,8 @@
   "require-dev": {
     "phpunit/phpunit": "^9.5",
     "symfony/var-dumper": "^7.2"
-  }
+  },
+  "bin": [
+    "bin/pvm"
+  ]
 }
