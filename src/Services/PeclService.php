@@ -24,6 +24,48 @@ class PeclService
         $this->cache = $cache;
     }
     
+    public function listAllExtensions(bool $forceRefresh = false): array
+    {
+        $cacheData = $this->cache->getCache();
+        $now       = time();
+        
+        // Check if we already have a cached list of all extension names
+        if (
+            !$forceRefresh
+            && isset($cacheData['pecl_extensions_all'])
+            && isset($cacheData['pecl_extensions_all']['timestamp'])
+            && ($now - $cacheData['pecl_extensions_all']['timestamp'] < self::CACHE_TTL)
+        ) {
+            return $cacheData['pecl_extensions_all']['extensions'];
+        }
+        
+        // Otherwise scrape the top-level directory
+        $baseUrl   = self::PECL_BASE_URL; // "https://downloads.php.net/~windows/pecl/releases/"
+        $subDirs   = $this->listDirectory($baseUrl);
+        $extensionNames = [];
+        
+        foreach ($subDirs as $item) {
+            // The directory listing returns items like "phalcon/", "redis/", "imagick/", etc.
+            // We only keep entries that end with "/" (i.e., real subfolders).
+            if (str_ends_with($item, '/')) {
+                // Remove trailing slash
+                $extensionName = rtrim($item, '/');
+                $extensionNames[] = $extensionName;
+            }
+        }
+        
+        // Cache and save
+        $cacheData['pecl_extensions_all'] = [
+            'timestamp'  => $now,
+            'extensions' => $extensionNames,
+        ];
+        $this->cache->setCache($cacheData);
+        $this->cache->saveCache();
+        
+        return $extensionNames;
+    }
+    
+    
     /**
      * Returns an array of PeclBuildInfo objects for the given extension name.
      * If $specificVersion is provided, it filters down to that version only.
