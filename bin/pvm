@@ -5,13 +5,15 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\Console\Application;
 use PVM\Commands\ListCommand;
+use PVM\Commands\SearchCommand;
 use PVM\Commands\InstallCommand;
-use PVM\Commands\UpgradeCommand;   // Add these lines
-use PVM\Commands\UninstallCommand; // Add these lines
+use PVM\Commands\UpgradeCommand;
+use PVM\Commands\UninstallCommand;
 
 $application = new Application('PVM', '0.4.0');
 
 $application->add(new ListCommand());
+$application->add(new SearchCommand());
 $application->add(new InstallCommand());
 $application->add(new UpgradeCommand());
 $application->add(new UninstallCommand());
