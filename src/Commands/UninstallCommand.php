@@ -15,11 +15,14 @@ use RecursiveIteratorIterator;
 use FilesystemIterator;
 
 /**
- * pvm uninstall php84
- * pvm uninstall php84-phalcon5
+ * pvm uninstall php82-nts-x64-vc16
+ * pvm uninstall php82-nts-x64-vc16-redis5.3.7
  *
  * If it's a base package, remove the entire folder + config entry.
- * If it's an extension, remove the .dll from ext/, remove the extension= line in php.ini, remove from config.
+ * If it's an extension, remove the .dll from ext/, remove extension= line from php.ini, remove from config.
+ *
+ * If the user only typed "php82" or "php82-redis5.3.7" and multiple variants exist,
+ * we prompt them which variant key to remove.
  */
 class UninstallCommand extends Command
 {
@@ -28,8 +31,8 @@ class UninstallCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Uninstall a base package (php84) or extension (php84-phalcon5).')
-            ->setHelp('Usage: pvm uninstall php84 or pvm uninstall php84-phalcon5')
+            ->setDescription('Uninstall a base package (php82-nts-x64-vc16) or extension (php82-nts-x64-vc16-redis5.3.7).')
+            ->setHelp('Usage: pvm uninstall php82-nts-x64-vc16 or pvm uninstall php82-nts-x64-vc16-redis5.3.7')
             ->addArgument('package', InputArgument::REQUIRED, 'Package or extension to uninstall')
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Skip confirmation prompt');
     }
@@ -41,41 +44,71 @@ class UninstallCommand extends Command
         $packageName = $input->getArgument('package');
         $force       = (bool) $input->getOption('force');
         
-        // Detect extension or base package
-        if (preg_match('/^(php\d{2})-(.+)$/', $packageName, $m)) {
-            // extension
-            $basePackage = $m[1];   // e.g. "php84"
-            $extensionId = $m[2];   // e.g. "phalcon5"
-            return $this->uninstallExtension($basePackage, $extensionId, $force, $io);
-        } else {
-            // base package
-            return $this->uninstallBasePackage($packageName, $force, $io);
+        // We check if it looks like "phpXX-..." with a trailing extension name, or just a base variant
+        // For example:
+        //   "php82-nts-x64-vc16-redis5.3.7"
+        //   "php82-redis5.3.7"  (partial base)
+        //   "php82-nts-x64-vc16" (full base variant)
+        //   "php82" (partial base)
+        // We'll do the same approach as InstallCommand for disambiguation.
+        
+        // 1) Attempt a full parse for base variant + extension
+        //    ^(php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+)-(.*)$
+        if (preg_match('/^(php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+)-(.+)$/', $packageName, $m)) {
+            // extension scenario with full base key
+            $baseVariantKey = $m[1];     // e.g. "php82-nts-x64-vc16"
+            $extIdentifier  = $m[2];     // e.g. "redis5.3.7"
+            return $this->uninstallExtensionByVariant($baseVariantKey, $extIdentifier, $force, $io);
         }
+        
+        // 2) Attempt a partial parse for "php\d{2}-(.+)$ => extension, but user didn't specify the full variant
+        //    e.g. "php82-redis5.3.7"
+        if (preg_match('/^(php\d+)-(.+)$/', $packageName, $m2)) {
+            // extension scenario but partial base
+            $baseName = $m2[1];    // e.g. "php82"
+            $extIdent = $m2[2];    // e.g. "redis5.3.7"
+            return $this->uninstallExtensionPartial($baseName, $extIdent, $force, $io);
+        }
+        
+        // 3) Attempt a full parse for base variant only: ^php\d+-(?:nts|ts)-(x64|x86)-vc\d+$
+        if (preg_match('/^php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+$/', $packageName)) {
+            // base variant scenario
+            return $this->uninstallBaseVariant($packageName, $force, $io);
+        }
+        
+        // 4) Possibly user typed just "php82"
+        if (preg_match('/^php(\d+)$/' , $packageName)) {
+            // e.g. "php82" => we see if there's multiple variants that match that prefix
+            return $this->uninstallBasePartial($packageName, $force, $io);
+        }
+        
+        // otherwise, we say invalid
+        $io->error("Unrecognized package name format '$packageName'.");
+        return Command::FAILURE;
     }
     
     /**
-     * Uninstall a base package, e.g. 'php84': remove folder + config entry.
+     * Uninstall a fully specified base variant, e.g. "php82-nts-x64-vc16".
      */
-    private function uninstallBasePackage(string $packageName, bool $force, SymfonyStyle $io): int
+    private function uninstallBaseVariant(string $variantKey, bool $force, SymfonyStyle $io): int
     {
         $configSvc = new ConfigService();
         $config    = $configSvc->getConfig();
         
-        if (!isset($config['packages'][$packageName])) {
-            $io->error("Package '$packageName' is not installed.");
+        if (!isset($config['packages'][$variantKey])) {
+            $io->error("Variant '$variantKey' is not installed.");
             return Command::FAILURE;
         }
         
-        $installPath = $config['packages'][$packageName]['install_path'] ?? null;
         if (!$force) {
-            $confirm = $io->confirm("Are you sure you want to uninstall $packageName?", false);
+            $confirm = $io->confirm("Are you sure you want to uninstall base package '$variantKey'?", false);
             if (!$confirm) {
                 $io->text('Aborting uninstall.');
                 return Command::SUCCESS;
             }
         }
         
-        // Remove directory
+        $installPath = $config['packages'][$variantKey]['install_path'] ?? null;
         if ($installPath && is_dir($installPath)) {
             $io->section("Removing directory: $installPath");
             $this->removeDirectory($installPath);
@@ -83,85 +116,187 @@ class UninstallCommand extends Command
             $io->warning("Install path '$installPath' not found. Skipping directory removal.");
         }
         
-        // Remove from config
-        unset($config['packages'][$packageName]);
+        // remove from config
+        unset($config['packages'][$variantKey]);
         $configSvc->setConfig($config);
         $configSvc->saveConfig();
         
-        $io->success("Uninstalled $packageName successfully.");
+        $io->success("Uninstalled base package '$variantKey' successfully.");
         return Command::SUCCESS;
     }
     
     /**
-     * Uninstall an extension, e.g. 'phalcon5' for base 'php84': remove from php.ini, remove dll, remove config.
+     * If user typed "php82" => we see which variants exist, ask them which to remove, etc.
      */
-    private function uninstallExtension(string $basePackageName, string $extensionId, bool $force, SymfonyStyle $io): int
+    private function uninstallBasePartial(string $baseName, bool $force, SymfonyStyle $io): int
     {
-        $packageKey = $basePackageName . '-' . $extensionId;
+        // e.g. "php82" => find all config keys matching ^php82-(nts|ts)-(x64|x86)-vc\d+$
+        $configSvc = new ConfigService();
+        $config    = $configSvc->getConfig();
+        $packages  = $config['packages'] ?? [];
         
+        $pattern = '/^'.$baseName.'-(?:nts|ts)-(?:x64|x86)-vc\d+$/';
+        $matches = [];
+        foreach ($packages as $key => $info) {
+            if (preg_match($pattern, $key)) {
+                $matches[] = $key;
+            }
+        }
+        if (empty($matches)) {
+            $io->error("No installed variants found for '$baseName'.");
+            return Command::FAILURE;
+        }
+        if (count($matches)===1) {
+            $only = $matches[0];
+            $io->text("Found exactly one variant: $only");
+            return $this->uninstallBaseVariant($only, $force, $io);
+        }
+        
+        // multiple => ask user
+        $pick = $io->choice(
+            "Multiple variants found for '$baseName'. Which do you want to uninstall?",
+            $matches,
+            $matches[0]
+        );
+        return $this->uninstallBaseVariant($pick, $force, $io);
+    }
+    
+    /**
+     * Uninstall an extension if user typed a fully qualified base variant + extension,
+     * e.g. "php82-nts-x64-vc16-redis5.3.7".
+     */
+    private function uninstallExtensionByVariant(string $baseVariantKey, string $extIdent, bool $force, SymfonyStyle $io): int
+    {
         $configSvc = new ConfigService();
         $config    = $configSvc->getConfig();
         
-        if (!isset($config['packages'][$basePackageName])) {
-            $io->error("Base package '$basePackageName' is not installed.");
+        if (!isset($config['packages'][$baseVariantKey])) {
+            $io->error("Base variant '$baseVariantKey' is not installed.");
             return Command::FAILURE;
         }
-        if (empty($config['packages'][$basePackageName]['extensions'][$packageKey])) {
-            $io->error("Extension '$extensionId' is not installed under $basePackageName.");
+        $pkgExtensions = $config['packages'][$baseVariantKey]['extensions'] ?? [];
+        // we assume the ext key is baseVariantKey-<extIdent>
+        $extKey = $baseVariantKey.'-'.$extIdent;
+        if (!isset($pkgExtensions[$extKey])) {
+            $io->error("Extension '$extIdent' is not installed under $baseVariantKey.");
             return Command::FAILURE;
         }
-        
-        $extensionInfo = $config['packages'][$basePackageName]['extensions'][$packageKey];
-        $dllFile       = $extensionInfo['dll_file'] ?? '(unknown)';
-        $iniEntry      = $extensionInfo['ini_entry'] ?? '';
-        $installPath   = $config['packages'][$basePackageName]['install_path'] ?? null;
         
         if (!$force) {
-            $confirm = $io->confirm("Are you sure you want to uninstall extension '$extensionId' from $basePackageName?", false);
+            $confirm = $io->confirm("Are you sure you want to uninstall extension '$extIdent' from $baseVariantKey?", false);
             if (!$confirm) {
                 $io->text('Aborting uninstall.');
                 return Command::SUCCESS;
             }
         }
         
-        // 1) Remove DLL from ext/
+        $extensionInfo = $pkgExtensions[$extKey];
+        $dllFile       = $extensionInfo['dll_file']  ?? '';
+        $iniEntry      = $extensionInfo['ini_entry'] ?? '';
+        $installPath   = $config['packages'][$baseVariantKey]['install_path'] ?? null;
+        
+        // remove the DLL
         if ($installPath && is_dir($installPath)) {
-            $extPath = $installPath . DIRECTORY_SEPARATOR . 'ext' . DIRECTORY_SEPARATOR . $dllFile;
-            if (file_exists($extPath)) {
-                $io->section("Removing DLL: $extPath");
-                @unlink($extPath);
+            $extDir  = $installPath.DIRECTORY_SEPARATOR.'ext';
+            $dllPath = $extDir.DIRECTORY_SEPARATOR.$dllFile;
+            if (file_exists($dllPath)) {
+                $io->section("Removing DLL: $dllPath");
+                @unlink($dllPath);
             } else {
-                $io->warning("DLL not found at $extPath, skipping.");
+                $io->warning("DLL not found at $dllPath, skipping.");
             }
             
-            // 2) Remove extension= line from php.ini (very naive approach)
-            $iniFile = $installPath . DIRECTORY_SEPARATOR . 'php.ini';
-            if (file_exists($iniFile)) {
+            // remove from php.ini
+            $iniFile = $installPath.DIRECTORY_SEPARATOR.'php.ini';
+            if (file_exists($iniFile) && $iniEntry) {
                 $io->section("Removing '$iniEntry' from php.ini...");
                 $iniContents = file_get_contents($iniFile);
-                // We'll remove the line containing that text
-                $pattern = '/^.*' . preg_quote($iniEntry, '/') . '.*$/m';
+                $pattern = '/^.*'.preg_quote($iniEntry, '/').'.*$/m';
                 $newContents = preg_replace($pattern, '', $iniContents);
-                if ($newContents !== $iniContents) {
+                if ($newContents!==$iniContents) {
                     file_put_contents($iniFile, $newContents);
                     $io->text("Removed extension line from php.ini");
                 } else {
-                    $io->warning("Could not find '$iniEntry' in php.ini. Possibly user removed it manually.");
+                    $io->warning("Could not find '$iniEntry' in php.ini. Possibly removed manually.");
                 }
-            } else {
-                $io->warning("No php.ini found at $iniFile, cannot remove extension line automatically.");
             }
         } else {
-            $io->warning("Install path not found for $basePackageName, skipping file removal.");
+            $io->warning("Install path not found for $baseVariantKey, skipping file removal.");
         }
         
-        // 3) Remove from config
-        unset($config['packages'][$basePackageName]['extensions'][$packageKey]);
+        // remove from config
+        unset($config['packages'][$baseVariantKey]['extensions'][$extKey]);
         $configSvc->setConfig($config);
         $configSvc->saveConfig();
         
-        $io->success("Uninstalled extension '$extensionId' from $basePackageName successfully.");
+        $io->success("Uninstalled extension '$extIdent' from $baseVariantKey successfully.");
         return Command::SUCCESS;
+    }
+    
+    /**
+     * Uninstall extension if user typed e.g. "php82-redis5.3.7" => partial base, then we see
+     * which base variants exist for "php82-(nts|ts)-(x64|x86)-vc\d+", see if extension is installed, etc.
+     */
+    private function uninstallExtensionPartial(string $baseName, string $extIdent, bool $force, SymfonyStyle $io): int
+    {
+        // e.g. baseName="php82", extIdent="redis5.3.7"
+        // find all installed keys that match ^php82-(nts|ts)-(x64|x86)-vc\d+$
+        $configSvc = new ConfigService();
+        $config    = $configSvc->getConfig();
+        $packages  = $config['packages'] ?? [];
+        
+        $pattern = '/^'.$baseName.'-(nts|ts)-(x64|x86)-vc(\d+)$/';
+        $foundKeys = [];
+        foreach ($packages as $pkgKey => $info) {
+            if (preg_match($pattern, $pkgKey)) {
+                $foundKeys[] = $pkgKey;
+            }
+        }
+        if (empty($foundKeys)) {
+            $io->error("No base variants found for '$baseName'.");
+            return Command::FAILURE;
+        }
+        
+        // each base might or might not have the extension
+        // we search for extKey => baseVariantKey-extIdent
+        $candidates = [];
+        foreach ($foundKeys as $bk) {
+            $extKey = $bk.'-'.$extIdent;
+            if (!empty($packages[$bk]['extensions'][$extKey])) {
+                $candidates[] = $extKey; // fully qualified
+            }
+        }
+        if (empty($candidates)) {
+            $io->error("Extension '$extIdent' not found under any '$baseName' variant. Possibly not installed.");
+            return Command::FAILURE;
+        }
+        if (count($candidates)===1) {
+            $only = $candidates[0];
+            // parse out baseVariant from extKey => e.g. "php82-nts-x64-vc16-redis5.3.7"
+            if (preg_match('/^(php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+)-(.*)$/', $only, $mm)) {
+                $baseVariant = $mm[1];
+                $extension   = $mm[2];
+                return $this->uninstallExtensionByVariant($baseVariant, $extension, $force, $io);
+            }
+            // fallback
+            $io->error("Error parsing extension key: $only");
+            return Command::FAILURE;
+        }
+        
+        // multiple => ask user
+        $choice = $io->choice(
+            "Multiple variants have extension '$extIdent'. Which do you want to uninstall?",
+            $candidates,
+            $candidates[0]
+        );
+        if (preg_match('/^(php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+)-(.*)$/', $choice, $mm2)) {
+            $bv = $mm2[1];
+            $ex= $mm2[2];
+            return $this->uninstallExtensionByVariant($bv, $ex, $force, $io);
+        }
+        
+        $io->error("Error parsing chosen extension key.");
+        return Command::FAILURE;
     }
     
     /**
