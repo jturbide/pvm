@@ -1,4 +1,5 @@
-vendor
-packages
+.idea/
+vendor/
+packages/
 php_errors.log
 error_log
