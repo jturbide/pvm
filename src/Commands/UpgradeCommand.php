@@ -31,9 +31,12 @@ use ZipArchive;
  */
 class UpgradeCommand extends Command
 {
-    protected static $defaultName = 'upgrade';
+    public function __construct()
+    {
+        parent::__construct('upgrade');
+    }
     
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Upgrade one or all installed base variants.')
@@ -53,7 +56,7 @@ EOT
             ->addOption('all', null, InputOption::VALUE_NONE, 'Upgrade all installed variants');
     }
     
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         

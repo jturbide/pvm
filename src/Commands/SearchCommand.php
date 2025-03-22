@@ -14,9 +14,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class SearchCommand extends Command
 {
-    protected static $defaultName = 'search';
+    public function __construct()
+    {
+        parent::__construct('search');
+    }
     
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Search PECL packages by keyword, optionally filtering by partial ext version, partial PHP version, etc.')
@@ -77,7 +80,7 @@ EOT
             );
     }
     
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io            = new SymfonyStyle($input, $output);
         $keyword       = strtolower($input->getArgument('keyword'));

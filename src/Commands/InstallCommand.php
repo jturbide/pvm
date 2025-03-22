@@ -35,9 +35,12 @@ use ZipArchive;
  */
 class InstallCommand extends Command
 {
-    protected static $defaultName = 'install';
+    public function __construct()
+    {
+        parent::__construct('install');
+    }
     
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Install a base PHP version or a PECL extension (supporting multiple side-by-side variants).')
@@ -65,7 +68,7 @@ EOT
             );
     }
     
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $packageName = $input->getArgument('package');

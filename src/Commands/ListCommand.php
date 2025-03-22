@@ -28,9 +28,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class ListCommand extends Command
 {
-    protected static $defaultName = 'list';
+    public function __construct()
+    {
+        parent::__construct('list');
+    }
     
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('List installed PHP versions or extensions (or both), plus remote variants if needed.')
@@ -90,7 +93,7 @@ EOT
             );
     }
     
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io   = new SymfonyStyle($input, $output);
         $type = strtolower($input->getArgument('type') ?? '');

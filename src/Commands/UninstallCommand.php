@@ -26,9 +26,12 @@ use FilesystemIterator;
  */
 class UninstallCommand extends Command
 {
-    protected static $defaultName = 'uninstall';
+    public function __construct()
+    {
+        parent::__construct('uninstall');
+    }
     
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Uninstall a base package (php82-nts-x64-vc16) or extension (php82-nts-x64-vc16-redis5.3.7).')
@@ -37,7 +40,7 @@ class UninstallCommand extends Command
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Skip confirmation prompt');
     }
     
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         
