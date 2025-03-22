@@ -61,7 +61,7 @@ class UninstallCommand extends Command
             // extension scenario with full base key
             $baseVariantKey = $m[1];     // e.g. "php82-nts-x64-vc16"
             $extIdentifier  = $m[2];     // e.g. "redis5.3.7"
-            return $this->uninstallExtensionByVariant($baseVariantKey, $extIdentifier, $force, $io);
+            return $this->uninstallExtensionByVariant($baseVariantKey, $extIdentifier, $force, $io, $input);
         }
         
         // 2) Attempt a partial parse for "php\d{2}-(.+)$ => extension, but user didn't specify the full variant
@@ -70,19 +70,19 @@ class UninstallCommand extends Command
             // extension scenario but partial base
             $baseName = $m2[1];    // e.g. "php82"
             $extIdent = $m2[2];    // e.g. "redis5.3.7"
-            return $this->uninstallExtensionPartial($baseName, $extIdent, $force, $io);
+            return $this->uninstallExtensionPartial($baseName, $extIdent, $force, $io, $input);
         }
         
         // 3) Attempt a full parse for base variant only: ^php\d+-(?:nts|ts)-(x64|x86)-vc\d+$
         if (preg_match('/^php\d+-(?:nts|ts)-(?:x64|x86)-vc\d+$/', $packageName)) {
             // base variant scenario
-            return $this->uninstallBaseVariant($packageName, $force, $io);
+            return $this->uninstallBaseVariant($packageName, $force, $io, $input);
         }
         
         // 4) Possibly user typed just "php82"
         if (preg_match('/^php(\d+)$/' , $packageName)) {
             // e.g. "php82" => we see if there's multiple variants that match that prefix
-            return $this->uninstallBasePartial($packageName, $force, $io);
+            return $this->uninstallBasePartial($packageName, $force, $io, $input);
         }
         
         // otherwise, we say invalid
@@ -93,9 +93,10 @@ class UninstallCommand extends Command
     /**
      * Uninstall a fully specified base variant, e.g. "php82-nts-x64-vc16".
      */
-    private function uninstallBaseVariant(string $variantKey, bool $force, SymfonyStyle $io): int
+    private function uninstallBaseVariant(string $variantKey, bool $force, SymfonyStyle $io, InputInterface $input): int
     {
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         
         if (!isset($config['packages'][$variantKey])) {
@@ -131,10 +132,11 @@ class UninstallCommand extends Command
     /**
      * If user typed "php82" => we see which variants exist, ask them which to remove, etc.
      */
-    private function uninstallBasePartial(string $baseName, bool $force, SymfonyStyle $io): int
+    private function uninstallBasePartial(string $baseName, bool $force, SymfonyStyle $io, InputInterface $input): int
     {
         // e.g. "php82" => find all config keys matching ^php82-(nts|ts)-(x64|x86)-vc\d+$
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         $packages  = $config['packages'] ?? [];
         
@@ -168,9 +170,10 @@ class UninstallCommand extends Command
      * Uninstall an extension if user typed a fully qualified base variant + extension,
      * e.g. "php82-nts-x64-vc16-redis5.3.7".
      */
-    private function uninstallExtensionByVariant(string $baseVariantKey, string $extIdent, bool $force, SymfonyStyle $io): int
+    private function uninstallExtensionByVariant(string $baseVariantKey, string $extIdent, bool $force, SymfonyStyle $io, InputInterface $input): int
     {
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         
         if (!isset($config['packages'][$baseVariantKey])) {
@@ -240,11 +243,12 @@ class UninstallCommand extends Command
      * Uninstall extension if user typed e.g. "php82-redis5.3.7" => partial base, then we see
      * which base variants exist for "php82-(nts|ts)-(x64|x86)-vc\d+", see if extension is installed, etc.
      */
-    private function uninstallExtensionPartial(string $baseName, string $extIdent, bool $force, SymfonyStyle $io): int
+    private function uninstallExtensionPartial(string $baseName, string $extIdent, bool $force, SymfonyStyle $io, InputInterface $input): int
     {
         // e.g. baseName="php82", extIdent="redis5.3.7"
         // find all installed keys that match ^php82-(nts|ts)-(x64|x86)-vc\d+$
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         $packages  = $config['packages'] ?? [];
         

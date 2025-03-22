@@ -125,7 +125,7 @@ EOT
         
         // If user wants the php listing, do it
         if ($listPhp) {
-            $this->listPhpVariants($io, $forceRefresh, $showAll, $tsOnly, $ntsOnly, $archFilter, $vcFilter);
+            $this->listPhpVariants($io, $forceRefresh, $showAll, $tsOnly, $ntsOnly, $archFilter, $vcFilter, $input);
         }
         
         // If user wants the extension listing, do that
@@ -148,9 +148,11 @@ EOT
         bool $tsOnly,
         bool $ntsOnly,
         ?string $archFilter,
-        ?string $vcFilter
+        ?string $vcFilter,
+        InputInterface $input,
     ) {
-        $cacheService   = new CacheService();
+        $baseDir = $input->getOption('base-dir');
+        $cacheService   = new CacheService($baseDir);
         $remoteService  = new RemoteVersionService($cacheService);
         $allRemoteBuilds= $remoteService->getAllBuilds($forceRefresh);
         
@@ -170,7 +172,8 @@ EOT
         }
         
         // gather installed
-        $configService = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configService = new ConfigService($baseDir);
         $config        = $configService->getConfig();
         $packages      = $config['packages'] ?? [];
         
@@ -332,9 +335,10 @@ EOT
      * Lists installed extensions.
      * Now we consider config keys matching ^php(\d+)-(nts|ts)-(x64|x86)-vc(\d+)$
      */
-    private function listExtensionsTable(SymfonyStyle $io)
+    private function listExtensionsTable(SymfonyStyle $io, InputInterface $input)
     {
-        $configService = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configService = new ConfigService($baseDir);
         $config        = $configService->getConfig();
         $packages      = $config['packages'] ?? [];
         

@@ -105,7 +105,8 @@ EOT
         }
         
         // 1) PeclService for scraping
-        $cacheService  = new CacheService();
+        $baseDir = $input->getOption('base-dir');
+        $cacheService  = new CacheService($baseDir);
         $peclService   = new PeclService($cacheService);
         
         // 2) Find extension folders that match the keyword

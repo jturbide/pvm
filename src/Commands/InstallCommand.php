@@ -77,7 +77,7 @@ EOT
         if (preg_match('/^(php\d{2})-(.+)$/', $packageName, $m)) {
             $baseName  = $m[1]; // e.g. "php82"
             $extString = $m[2]; // e.g. "redis5.3.7"
-            return $this->installExtension($baseName, $extString, $io);
+            return $this->installExtension($baseName, $extString, $io, $input);
         } else {
             // base scenario => "php82"
             return $this->installBasePackage($packageName, $io, $input);
@@ -127,7 +127,8 @@ EOT
         $vcWanted = $vcOption ? (int)$vcOption : null;
         
         // gather all builds from RemoteVersionService
-        $cache     = new CacheService();
+        $baseDir = $input->getOption('base-dir');
+        $cache     = new CacheService($baseDir);
         $remoteSvc = new RemoteVersionService($cache);
         $allBuilds = $remoteSvc->getAllBuilds(false);
         
@@ -285,7 +286,8 @@ EOT
         bool $isX64,
         int $vcVer,
         PhpBuildInfo $build,
-        SymfonyStyle $io
+        SymfonyStyle $io,
+        InputInterface $input,
     ): int {
         $fullVersion = $build->fullVersion;
         
@@ -293,7 +295,8 @@ EOT
         $variantKey = $this->makeVariantKey($majorMinor, $isTs, $isX64, $vcVer);
         $io->section("Chosen variant key: $variantKey (patch=$fullVersion)");
         
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         
         // check if it's already installed
@@ -399,7 +402,7 @@ EOT
             throw new RuntimeException("Downloaded file is too small or invalid.");
         }
         
-        $rootPath    = realpath(__DIR__.'/../../');
+        $rootPath = getcwd();
         $installPath = $rootPath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.$variantKey;
         if (!is_dir($installPath)) {
             mkdir($installPath, 0777, true);
@@ -487,13 +490,14 @@ EOT
      * We find all config keys that match "php82-(nts|ts)-(x64|x86)-vc(\d+)", if multiple, ask user.
      * Then parse is_ts, is_x64, compiler_version, do a pecl install matching those.
      */
-    private function installExtension(string $baseName, string $extIdentifier, SymfonyStyle $io): int
+    private function installExtension(string $baseName, string $extIdentifier, SymfonyStyle $io, InputInterface $input): int
     {
         $io->title("Installing extension '$extIdentifier' for $baseName (multiple variants supported).");
         
         // find all packages that start with e.g. "php82-nts-x64-vc", "php82-ts-x64-vc", etc.
         // We do a pattern like: ^(php82)-(nts|ts)-(x64|x86)-vc(\d+)$
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config = $configSvc->getConfig();
         $packages = $config['packages'] ?? [];
         
@@ -553,7 +557,8 @@ EOT
         }
         
         // use PeclService to find extension builds
-        $peclSvc   = new PeclService(new CacheService());
+        $baseDir = $input->getOption('base-dir');
+        $peclSvc   = new PeclService(new CacheService($baseDir));
         $allExtBuilds = $peclSvc->getExtensionBuilds($extName, null, false);
         
         // derive major.minor => from e.g. "php82" => "8.2"

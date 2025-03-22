@@ -7,9 +7,9 @@ class CacheService
     private string $cachePath;
     private array $cacheData = [];
     
-    public function __construct(string $cachePath = __DIR__ . '/../../config/cache.json')
+    public function __construct(?string $baseDir = null)
     {
-        $this->cachePath = $cachePath;
+        $this->cachePath = $baseDir . '/config/cache.json';
         $this->loadCache();
     }
     

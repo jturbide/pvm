@@ -20,14 +20,14 @@ if (!$autoloadFound) {
     exit(1);
 }
 
-use Symfony\Component\Console\Application;
+use PVM\PvmApplication;
 use PVM\Commands\ListCommand;
 use PVM\Commands\SearchCommand;
 use PVM\Commands\InstallCommand;
 use PVM\Commands\UpgradeCommand;
 use PVM\Commands\UninstallCommand;
 
-$application = new Application('PVM', '1.0.0');
+$application = new PvmApplication('PHP Version Manager CLI', '1.0.0');
 
 $application->add(new ListCommand());
 $application->add(new SearchCommand());

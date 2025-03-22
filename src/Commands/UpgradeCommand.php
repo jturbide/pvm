@@ -68,7 +68,8 @@ EOT
             return Command::FAILURE;
         }
         
-        $configSvc = new ConfigService();
+        $baseDir = $input->getOption('base-dir');
+        $configSvc = new ConfigService($baseDir);
         $config    = $configSvc->getConfig();
         $packages  = $config['packages'] ?? [];
         
@@ -138,7 +139,8 @@ EOT
         }
         
         // Now let's retrieve all remote builds, so we can find the newest patch for each variant
-        $remoteSvc   = new RemoteVersionService(new CacheService());
+        $baseDir = $input->getOption('base-dir');
+        $remoteSvc   = new RemoteVersionService(new CacheService($baseDir));
         $allBuilds   = $remoteSvc->getAllBuilds(false); // an array of PhpBuildInfo
         
         // We'll do the actual upgrade logic

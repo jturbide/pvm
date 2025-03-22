@@ -7,9 +7,9 @@ class ConfigService
     private string $configPath;
     private array $config = [];
     
-    public function __construct(string $configPath = __DIR__ . '/../../config/config.json')
+    public function __construct(?string $baseDir = null)
     {
-        $this->configPath = $configPath;
+        $this->configPath = $baseDir . '/config/config.json';
         $this->loadConfig();
     }
     
