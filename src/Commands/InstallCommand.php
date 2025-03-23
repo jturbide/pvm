@@ -162,10 +162,10 @@ EOT
                 return Command::FAILURE; // error was printed inside pickVariantDirect
             }
             // we have a single build => do the final install/upgrade
-            return $this->installOrUpgradeVariant($majorMinor, $isTs, ($arch==='x64'), $chosenBuild->vcVersion, $chosenBuild, $io);
+            return $this->installOrUpgradeVariant($majorMinor, $isTs, ($arch==='x64'), $chosenBuild->vcVersion, $chosenBuild, $io, $input);
         } else {
             // no flags => interactive approach
-            return $this->pickVariantInteractive($majorMinor, $byVariant, $io);
+            return $this->pickVariantInteractive($majorMinor, $byVariant, $io, $input);
         }
     }
     
@@ -204,7 +204,7 @@ EOT
      * If the user didn't specify any flags, we show them a choice of distinct variants,
      * defaulting to "NTS / x64 / highest VC" if present. Once they pick, we install or upgrade.
      */
-    private function pickVariantInteractive(string $majorMinor, array $byVariant, SymfonyStyle $io): int
+    private function pickVariantInteractive(string $majorMinor, array $byVariant, SymfonyStyle $io, InputInterface $input): int
     {
         // build a menu
         $menuItems = [];
@@ -240,7 +240,8 @@ EOT
                 ($only['arch']==='x64'),
                 $only['vcNum'],
                 $only['build'],
-                $io
+                $io,
+                $input,
             );
         }
         
@@ -273,7 +274,8 @@ EOT
             ($pick['arch']==='x64'),
             $pick['vcNum'],
             $pick['build'],
-            $io
+            $io,
+            $input,
         );
     }
     
