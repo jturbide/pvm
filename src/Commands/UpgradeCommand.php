@@ -29,7 +29,7 @@ use ZipArchive;
  * For each variant, we find the newest patch from getAllBuilds() that matches
  * (majorMinor, isNts, isX64, vcVersion). If it's higher than the installed patch, we do an in-place upgrade.
  */
-class UpgradeCommand extends Command
+class UpgradeCommand extends BaseCommand
 {
     public function __construct()
     {

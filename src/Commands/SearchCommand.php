@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class SearchCommand extends Command
+class SearchCommand extends BaseCommand
 {
     public function __construct()
     {

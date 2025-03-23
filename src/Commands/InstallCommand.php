@@ -33,7 +33,7 @@ use ZipArchive;
  *    - If multiple variants exist for "php82", we ask which one to attach to.
  *    - We pick the correct .dll from PECL by matching TS vs. NTS, x64 vs. x86, same VC.
  */
-class InstallCommand extends Command
+class InstallCommand extends BaseCommand
 {
     public function __construct()
     {

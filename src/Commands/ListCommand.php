@@ -26,7 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *   --arch=x64|x86  => only show that architecture
  *   --vc=17         => only show that compiler version
  */
-class ListCommand extends Command
+class ListCommand extends BaseCommand
 {
     public function __construct()
     {
@@ -130,7 +130,7 @@ EOT
         
         // If user wants the extension listing, do that
         if ($listExtensions) {
-            $this->listExtensionsTable($io);
+            $this->listExtensionsTable($io, $input);
         }
         
         return Command::SUCCESS;

@@ -24,7 +24,7 @@ use FilesystemIterator;
  * If the user only typed "php82" or "php82-redis5.3.7" and multiple variants exist,
  * we prompt them which variant key to remove.
  */
-class UninstallCommand extends Command
+class UninstallCommand extends BaseCommand
 {
     public function __construct()
     {
