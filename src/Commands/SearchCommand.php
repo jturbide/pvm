@@ -21,6 +21,8 @@ class SearchCommand extends BaseCommand
     
     protected function configure(): void
     {
+        parent::configure();
+        
         $this
             ->setDescription('Search PECL packages by keyword, optionally filtering by partial ext version, partial PHP version, etc.')
             ->setHelp(

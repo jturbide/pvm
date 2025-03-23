@@ -42,6 +42,8 @@ class InstallCommand extends BaseCommand
     
     protected function configure(): void
     {
+        parent::configure();
+        
         $this
             ->setDescription('Install a base PHP version or a PECL extension (supporting multiple side-by-side variants).')
             ->addArgument('package', InputArgument::REQUIRED, 'Package name (e.g. php82, or php82-redis5.3.7)')

@@ -38,6 +38,8 @@ class UpgradeCommand extends BaseCommand
     
     protected function configure(): void
     {
+        parent::configure();
+        
         $this
             ->setDescription('Upgrade one or all installed base variants.')
             ->setHelp(

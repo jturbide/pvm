@@ -33,6 +33,8 @@ class UninstallCommand extends BaseCommand
     
     protected function configure(): void
     {
+        parent::configure();
+        
         $this
             ->setDescription('Uninstall a base package (php82-nts-x64-vc16) or extension (php82-nts-x64-vc16-redis5.3.7).')
             ->setHelp('Usage: pvm uninstall php82-nts-x64-vc16 or pvm uninstall php82-nts-x64-vc16-redis5.3.7')

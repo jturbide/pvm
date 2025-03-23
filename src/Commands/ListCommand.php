@@ -35,6 +35,8 @@ class ListCommand extends BaseCommand
     
     protected function configure(): void
     {
+        parent::configure();
+        
         $this
             ->setDescription('List installed PHP versions or extensions (or both), plus remote variants if needed.')
             ->setHelp(
