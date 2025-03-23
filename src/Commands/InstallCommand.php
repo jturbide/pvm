@@ -335,7 +335,7 @@ EOT
         // fresh install
         $io->section("Fresh install of $variantKey (PHP $fullVersion)...");
         try {
-            $installPath = $this->doFreshInstall($variantKey, $build, $io);
+            $installPath = $this->doFreshInstall($variantKey, $build, $io, $input);
         } catch (\Exception $e) {
             $io->error("Installation failed: ".$e->getMessage());
             return Command::FAILURE;
@@ -374,7 +374,7 @@ EOT
     /**
      * Actually download + extract the new build into packages/<variantKey>.
      */
-    private function doFreshInstall(string $variantKey, PhpBuildInfo $build, SymfonyStyle $io): string
+    private function doFreshInstall(string $variantKey, PhpBuildInfo $build, SymfonyStyle $io, InputInterface $input): string
     {
         $downloadUrl = $build->downloadUrl;
         $fullVersion= $build->fullVersion;
@@ -402,8 +402,8 @@ EOT
             throw new RuntimeException("Downloaded file is too small or invalid.");
         }
         
-        $rootPath = getcwd();
-        $installPath = $rootPath.DIRECTORY_SEPARATOR.'packages'.DIRECTORY_SEPARATOR.$variantKey;
+        $baseDir = $input->getOption('base-dir');
+        $installPath = $baseDir . DIRECTORY_SEPARATOR . '.pvm' . DIRECTORY_SEPARATOR . 'packages' . DIRECTORY_SEPARATOR . $variantKey;
         if (!is_dir($installPath)) {
             mkdir($installPath, 0777, true);
         }

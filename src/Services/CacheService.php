@@ -9,7 +9,7 @@ class CacheService
     
     public function __construct(?string $baseDir = null)
     {
-        $this->cachePath = $baseDir . '/config/cache.json';
+        $this->cachePath = $baseDir . '.pvm' . DIRECTORY_SEPARATOR . 'cache.json';
         $this->loadCache();
     }
     

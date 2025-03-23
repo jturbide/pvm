@@ -9,7 +9,7 @@ class ConfigService
     
     public function __construct(?string $baseDir = null)
     {
-        $this->configPath = $baseDir . '/config/config.json';
+        $this->configPath = $baseDir . '.pvm' . DIRECTORY_SEPARATOR . 'config.json';
         $this->loadConfig();
     }
     
