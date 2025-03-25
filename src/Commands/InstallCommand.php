@@ -424,11 +424,120 @@ EOT
         $iniProduction = $installPath.DIRECTORY_SEPARATOR.'php.ini-production';
         $iniFile       = $installPath.DIRECTORY_SEPARATOR.'php.ini';
         if (file_exists($iniProduction) && !file_exists($iniFile)) {
-            rename($iniProduction, $iniFile);
+            copy($iniProduction, $iniFile);
+            $this->configurePhpIni($iniFile, $installPath, $io);
         }
         
         return $installPath;
     }
+    
+    /**
+     * Configure php.ini with some default settings:
+     * - extension_dir = "<installPath>/ext"
+     * - date.timezone = "UTC"
+     * - display_errors = "On"
+     * - memory_limit = "512M"
+     * - Optionally enable some common extensions if you want
+     *
+     * @param string $iniFile      The path to php.ini
+     * @param string $installPath  The path to the installed PHP variant
+     * @param SymfonyStyle $io      For output messages
+     */
+    private function configurePhpIni(string $iniFile, string $installPath, SymfonyStyle $io): void
+    {
+        if (!file_exists($iniFile)) {
+            $io->warning("No php.ini found at $iniFile; skipping configuration defaults.");
+            return;
+        }
+        
+        $iniContents = file_get_contents($iniFile);
+        $io->section("Configuring php.ini at $iniFile");
+        
+        $cacertFile = rtrim(str_replace('\\', '/', $installPath), DIRECTORY_SEPARATOR . '/') . '/extras/ssl/cacert.pem';
+        
+        // Extension directory
+        $iniContents = str_replace(';extension_dir = "ext"', 'extension_dir = "ext"', $iniContents);
+        
+        // File uploads & post size
+        $iniContents = str_replace(';max_input_vars = 1000', 'max_input_vars = 10000', $iniContents);
+        $iniContents = str_replace('post_max_size = 8M', 'post_max_size = 2048M', $iniContents);
+        $iniContents = str_replace('upload_max_filesize = 2M', 'upload_max_filesize = 2048M', $iniContents);
+        $iniContents = str_replace('max_file_uploads = 20', 'max_file_uploads = 200', $iniContents);
+        
+        // Error log
+        $iniContents = str_replace('display_errors = Off', 'display_errors = On', $iniContents);
+        $iniContents = str_replace('error_reporting = E_ALL & ~E_DEPRECATED', 'error_reporting = E_ALL', $iniContents);
+        
+        // Set unlimited
+        $iniContents = str_replace('max_execution_time = 30', 'max_execution_time = 0', $iniContents);
+        $iniContents = str_replace('max_input_time = 60', 'max_input_time = -1', $iniContents);
+        $iniContents = str_replace('memory_limit = 128M', 'memory_limit = -1', $iniContents);
+        
+        // Timezone
+        $iniContents = str_replace(';date.timezone =', 'date.timezone = "America/Toronto"', $iniContents);
+        
+        // Session
+        $iniContents = str_replace(';session.save_path = "/tmp"', ';session.save_path = "C:\Windows\Temp"', $iniContents);
+        
+        // Extensions
+        $iniContents = str_replace(';extension=bz2', 'extension=bz2', $iniContents);
+        $iniContents = str_replace(';extension=curl', 'extension=curl', $iniContents);
+        $iniContents = str_replace(';extension=ffi', 'extension=ffi', $iniContents);
+        $iniContents = str_replace(';extension=ftp', 'extension=ftp', $iniContents);
+        $iniContents = str_replace(';extension=fileinfo', 'extension=fileinfo', $iniContents);
+        $iniContents = str_replace(';extension=gd', 'extension=gd', $iniContents);
+        $iniContents = str_replace(';extension=gettext', 'extension=gettext', $iniContents);
+        $iniContents = str_replace(';extension=gmp', 'extension=gmp', $iniContents);
+        $iniContents = str_replace(';extension=intl', 'extension=intl', $iniContents);
+        $iniContents = str_replace(';extension=ldap', 'extension=ldap', $iniContents);
+        $iniContents = str_replace(';extension=mbstring', 'extension=mbstring', $iniContents);
+        $iniContents = str_replace(';extension=exif', 'extension=exif', $iniContents);
+        $iniContents = str_replace(';extension=mysqli', 'extension=mysqli', $iniContents);
+        $iniContents = str_replace(';extension=openssl', 'extension=openssl', $iniContents);
+        $iniContents = str_replace(';extension=pdo_mysql', 'extension=pdo_mysql', $iniContents);
+        $iniContents = str_replace(';extension=soap', 'extension=soap', $iniContents);
+        $iniContents = str_replace(';extension=sockets', 'extension=sockets', $iniContents);
+        $iniContents = str_replace(';extension=sodium', 'extension=sodium', $iniContents);
+        $iniContents = str_replace(';extension=tidy', 'extension=tidy', $iniContents);
+        $iniContents = str_replace(';extension=xsl', 'extension=xsl', $iniContents);
+        $iniContents = str_replace(';extension=zip', 'extension=zip', $iniContents);
+        $iniContents = str_replace(';extension=zip', 'extension=zip', $iniContents);
+        
+        // Opcache
+        $iniContents = str_replace(';zend_extension=opcache', 'zend_extension=opcache', $iniContents);
+        $iniContents = str_replace(';opcache.enable=1', 'opcache.enable=1', $iniContents);
+        $iniContents = str_replace(';opcache.enable_cli=0', 'opcache.enable_cli=1', $iniContents);
+        $iniContents = str_replace(';opcache.memory_consumption=128', 'opcache.memory_consumption=512', $iniContents);
+        $iniContents = str_replace(';opcache.max_accelerated_files=10000', 'opcache.max_accelerated_files=100000', $iniContents);
+        $iniContents = str_replace(';opcache.use_cwd=1', 'opcache.use_cwd=1', $iniContents);
+        
+        // Curl
+        $iniContents = str_replace(';curl.cainfo =', 'curl.cainfo = "' . $cacertFile . '"', $iniContents);
+        
+        // Save the updated php.ini
+        file_put_contents($iniFile, $iniContents);
+        
+        $this->downloadCacert($cacertFile, $io);
+        
+        $io->text("Updated php.ini with default settings (extension_dir, timezone, display_errors, etc.)");
+    }
+    
+    private function downloadCacert(string $cacertFile, SymfonyStyle $io): void
+    {
+        $cacertUrl = 'https://curl.se/ca/cacert.pem';
+        $io->text("Downloading cacert.pem file...");
+        
+        $client = new Client();
+        try {
+            $client->request('GET', $cacertUrl, ['sink' => $cacertFile]);
+            $io->success("cacert.pem file downloaded and saved to: $cacertFile");
+        } catch (\Exception $e) {
+            throw new RuntimeException("Failed to download cacert.pem: " . $e->getMessage());
+        }
+        
+        $io->text("Updated php.ini with default settings (extension_dir, timezone, display_errors, etc.)");
+    }
+    
     
     /**
      * Overwrites .exe/.dll, skipping php.ini

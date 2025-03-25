@@ -248,7 +248,9 @@ EOT
         $io->text("Downloading patch from {$buildInfo->downloadUrl}...");
         $tempZip = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'pvm-upgrade-' . uniqid() . '.zip';
         
-        $client = new Client();
+        $client = new Client([
+            'verify' => false,
+        ]);
         try {
             $head = $client->head($buildInfo->downloadUrl);
             if ($head->getStatusCode()!==200) {

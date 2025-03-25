@@ -156,7 +156,7 @@ class UninstallCommand extends BaseCommand
         if (count($matches)===1) {
             $only = $matches[0];
             $io->text("Found exactly one variant: $only");
-            return $this->uninstallBaseVariant($only, $force, $io);
+            return $this->uninstallBaseVariant($only, $force, $io, $input);
         }
         
         // multiple => ask user
@@ -165,7 +165,7 @@ class UninstallCommand extends BaseCommand
             $matches,
             $matches[0]
         );
-        return $this->uninstallBaseVariant($pick, $force, $io);
+        return $this->uninstallBaseVariant($pick, $force, $io, $input);
     }
     
     /**
